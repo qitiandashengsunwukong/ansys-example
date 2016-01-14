@@ -1,0 +1,159 @@
+! 定义双角钢截面的命令流
+/PREP7
+ET, 1, MESH200 !定义辅助单元类型
+KEYOPT, 1, 1, 7
+
+! 建立截面关键点
+K, 1, 24
+K, 2, 99
+K, 3, 99, 8
+K, 4, 32, 8
+K, 5, 32, 75
+K, 6, 24, 75
+! 创建双角钢截面
+A, 1, 2, 3, 4, 5, 6
+!ARSYM, X, ALL
+
+! 划分截面网格
+AESIZE, ALL, 20  !指定划分面网格的尺寸
+AMESH, ALL
+
+! 写梁截面文件
+SECWRITE, DLA, sect
+
+FINISH
+/CLEAR
+
+!****************************************************************************
+! 空间桁架静力分析
+!****************************************************************************
+/FILNAME, truss
+/TITLE, Static Analysis of a 3D Truss
+
+/PREP7
+ET, 1, BEAM188
+ET, 2, LINK8
+R, 1, 1900
+R, 2, 960.6
+MP, EX, 1, 2.06E5
+MP, PRXY, 1, 0.3
+MP, DENS, 1, 7.85E-9
+
+! 读入用户自定义截面文件
+SECTYPE, 1, BEAM, MESH
+SECOFFSET, USER, 0, 37.5
+SECREAD, 'DLA', 'sect', , MESH
+SECPLOT, 1, 1
+SECTYPE, 2, BEAM, CHAN, 
+SECOFFSET, USER, 24, 50
+SECDATA, 48, 48, 100, 5.3, 5.3, 5.3
+SECTYPE, 3, BEAM, L
+SECOFFSET, CENT
+SECDATA, 50, 50, 5, 5
+
+! 定义下弦两关键点
+K, 
+K, 33, 19200
+KFILL
+! 复制形成上弦关键点
+KGEN, 2, ALL, , , , 500, ,33, 0
+
+! 创建一榀桁架几何模型的直线
+*DO,I,1,32
+    L, I, I+1
+    L, I+33, I+34
+*ENDDO
+*DO, I, 1, 31, 2
+    L, I, I+34
+    L, I+2, I+34
+*ENDDO
+L, 1, 34
+L, 33, 66
+! 创建空间梁单元的方向定位关键点
+K, 100, 0, 1000
+K, 101, 19500
+! 指定线的单元属性
+LSEL, S, LENGTH, , 600
+LATT, 1, 1, 1, , 100, , 1
+ALLSEL
+LSEL, S, LENGTH, , 500
+LATT, 1, 1, 1, , 101, , 2
+ALLSEL
+LSEL, S, LENGTH, ,700, 800
+LSEL, U, LINE, , 65, 96, 31
+LATT, 1, 2, 2, , , , 1
+ALLSEL
+LSEL, S, LINE, , 65, 96, 31
+LATT, 1, 1, 2, , , ,1
+ALLSEL
+LESIZE, ALL, , , 1
+
+LMESH, ALL
+! 压缩节点编号
+NUMCMP, ALL
+
+! 创建另一榀桁架
+NGEN, 2, 132, ALL, , , , , 500, 1
+EGEN, 2, 132, ALL, , , , , , , , , , 500
+
+! 创建两桁架间的横撑
+TYPE, 1
+MAT, 1
+REAL, 1
+SECNUM, 3
+*DO, I, 5, 129, 4
+    E, I, I+132
+*ENDDO
+*DO, I, 7, 127, 4
+    E, I, I+132
+*ENDDO
+E, 4, 136
+E, 1, 133
+E, 2, 134
+
+EPLOT
+/ESHAPE, 1, ON
+/REPLOT
+FINISH
+
+/SOLU
+D, 1, , , , , , UX, UY, UZ
+D, 133, , , , , , UX, UY, UZ
+D, 127, , , , , , UY, UZ
+D, 259, , , , , , UY, UZ
+
+ANTYPE, STATIC
+TIME, 1
+ACEL, , 9800
+SOLVE
+TIME, 2
+NSEL, S, LOC, Y, 500
+F, ALL, FY, -436.4
+ALLSEL
+ACEL, 0, 0, 0 ! 删除荷载步1中的重力加速度
+SOLVE
+FINISH
+
+! 进入通用后处理器
+/POST1
+! 观察工况2的结构变形情况
+PLNSOL, U, Y, 0, 1.0  ! 观察 Y 方向位移等值线图
+! 荷载工况的定义
+LCDEF, 1, 1, 1  ! 从结果文件创建荷载工况1
+LCDEF, 2, 2, 1  ! 创建荷载工况2
+! 定义荷载工况组合比例系数
+LCFACT, 1, 1.2  ! 定义荷载工况1的比例因子
+LCFACT, 2, 1.4  ! 定义荷载工况2的比例因子
+! 读入荷载工况1
+LCASE, 1        ! 将一个荷载工况读入数据库
+! 荷载工况的组合
+LCOPER, ADD, 2
+! 定义内力组合后的单元表
+ETABLE, AxialF, SMISC, 1 ! 定义显示I端轴力的单元表
+! 查看内力组合后的桁架轴力图
+PLLS, AxialF, AxialF, 1, 0
+! 写入荷载工况组合文件
+LCWRITE, 3, Combined Results
+
+FINISH
+SAVE
