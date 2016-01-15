@@ -1,0 +1,157 @@
+! define parameters for future use
+exx=2.07e11 ! young's modulus (2.07e11 pa = 30e6 psi)
+w_hex=.01 ! width of hex across flats (.01m=.39in)
+*afun,deg ! units for angular parametric functions
+w_flat=w_hex*tan(30) ! width of flat
+l_shank=.075 ! length of shank (short end) (.075m=3.0in)
+l_handle=.2 ! length of handle (long end) (.2m=7.9 in)
+bendrad=.01 ! bend radius of allen wrench (.01m=.39 in)
+l_elem=.0075 ! element length (.0075 m = .30 in)
+no_d_hex=2 ! number of divisions on hex flat
+tol=25e-6 ! tolerance for selecting nodes (25e-6 m = .001 in)
+/prep7
+et,1,solid185,,3 ! eight-node brick element using simplified enhanced
+! strain formulation
+et,2,plane182,3 ! four-node quadrilateral (for area mesh)using
+! simplified enhanced strain formulation
+mp,ex,1,exx ! young's modulus for material 1
+mp,prxy,1,0.3 ! poisson's ratio for material 1
+rpoly,6,w_flat ! hexagonal area
+k,7 ! keypoint at (0,0,0)
+k,8,,,-l_shank ! keypoint at shank-handle intersection
+k,9,,l_handle,-l_shank ! keypoint at end of handle
+l,4,1 ! line through middle of hex shape
+l,7,8 ! line along middle of shank
+l,8,9 ! line along handle
+lfillt,8,9,bendrad ! line along bend radius between shank and
+! handle
+/view,,1,1,1 ! isometric view in window 1
+/angle,,90,xm ! rotates model 90 degrees about x
+/pnum,line,1 ! line numbers turned on
+lplot
+/pnum,line,0 ! line numbers off
+l,1,4 ! hex section is cut into two quadrilaterals
+asbl,1,7,,,keep ! to satisfy mapped meshing requirements for bricks
+cm,botarea,area ! component name botarea for the two areas
+! generate area mesh for later drag
+lesize,1,,,no_d_hex ! number of divisions along line 1
+lesize,2,,,no_d_hex
+lesize,6,,,no_d_hex
+type,2 ! plane182 elements to be meshed first
+mshape,0,2d ! mapped quad mesh
+mshkey,1
+save ! save database before meshing
+amesh,all
+/title,meshed hex wrench end to be used in vdrag
+
+eplot
+! now drag the 2-d mesh to produce 3-d elements
+type,1 ! type pointer set to solid185
+esize,l_elem ! element size
+vdrag,2,3,,,,,8,10,9 ! drag operation to create 3-d mesh
+/type,,hidp ! precise hidden line display
+/title,meshed hex wrench
+eplot
+cmsel,,botarea ! select botarea component and
+aclear,all ! delete the 2-d elements
+asel,all
+finish
+! apply loads and obtain the solution
+/solu
+antype,static ! static analysis (default)
+/title,allen wrench -- load step 1
+! first fix all nodes around bottom of shank
+cmsel,,botarea ! bottom areas of shank
+lsel,,ext ! exterior lines of those areas
+nsll,,1 ! nodes on those lines
+d,all,all ! displacement constraints
+lsel,all
+/pbc,u,,1 ! displacement symbols turned on
+/title,boundary conditions on end of wrench
+nplot
+!now apply pressure on handle to represent 100-n (22.5-lb) finger
+!force
+asel,,loc,y,bendrad,l_handle ! areas on handle
+asel,r,loc,x,w_flat/2,w_flat ! two areas on one side of handle...
+nsla,,1 ! ...and all corresponding nodes
+nsel,r,loc,y,l_handle+tol,l_handle-(3.0*l_elem)-tol ! reselects
+! nodes at back end of handle (3
+! element lengths)
+*get,minyval,node,,mnloc,y ! get minimum y value of selected
+! nodes
+*get,maxyval,node,,mxloc,y ! get maximum y value of selected
+! nodes
+ptorq=100/(w_hex*(maxyval-minyval)) ! pressure equivalent to 100 n
+sf,all,pres,ptorq ! ptorq pressure on all selected
+! nodes
+allsel ! restores full set of all entities
+/psf,pres,,2 ! pressure symbols turned on
+/title,boundary conditions on wrench for load step 1
+nplot
+lswrite ! writes first load step
+/title, allen wrench -- load step 2
+! downward pressure on top of handle, representing 20-n (4.5 -lb)
+! force
+pdown=20/(w_flat*(maxyval-minyval))
+asel,,loc,z,-(l_shank+(w_hex/2)) ! area on top flat of handle...
+nsla,,1 ! ...and all corresponding nodes
+nsel,r,loc,y,l_handle+tol,l_handle-(3.0*l_elem)-tol ! reselects
+! nodes at back end of handle (3
+! element lengths)
+sf,all,pres,pdown ! pdown pressure at all selected
+! nodes
+allsel
+/title,boundary conditions on wrench for load step 2
+nplot
+lswrite ! writes second load step
+save ! save database before solution
+
+lssolve,1,2 ! initiates solution for load step files 1
+! and 2
+finish
+!review the results
+/show,jpeg
+/post1
+set,1 ! reads load step 1 results
+prrsol ! reaction solution listing
+/pbc,defa ! no bc symbols
+/psf,defa ! no surface load symbols
+/edge,,1 ! edges only, no interior element outlines
+/title,deformed allen wrench caused by torque
+pldisp,2 ! deformed shape overlaid with undeformed
+! edge plot
+/gsave,pldisp,gsav ! saves graphics specifications on
+! pldisp.gsav
+/plopts,info,on ! turns on entire legend column
+/plopts,leg1,off ! turns off legend header
+/angle,,120,ym,1 ! additional rotation about model y (to see
+! high stress areas)
+/title,stress intensity contours caused by torque
+plnsol,s,int ! stress intensity contours
+*get,smax,plnsol,0,max
+*stat,smax
+/gsave,plnsol,gsav ! saves graphics specifications to
+! plnsol.gsav
+set,2 ! reads load step 2 results
+prrsol ! reaction solution listing
+/gresume,pldisp,gsav ! resumes graphics specifications from
+! pldisp.gsav
+/title,deformed allen wrench caused by torque and force
+pldisp,2
+/gresume,plnsol,gsav ! resumes graphics specifications from
+! plnsol.gsav
+/title,stress intensity contours caused by torque and force
+plnsol,s,int
+*get,smax,plnsol,0,max
+*stat,smax
+wpof,,,-0.067 ! offset the working plane for cross-section
+! view
+/type,1,5 ! capped hidden display
+/cplane,1 ! cutting plane defined to use the wp
+/view, 1 ,wp ! view will be normal to the wp
+/dist,1,.01 ! zoom in on the cross section
+/title,cross section of the allen wrench under torque and force loading
+plnsol,s,int
+*get,smax,plnsol,0,max
+*stat,smax
+finish
