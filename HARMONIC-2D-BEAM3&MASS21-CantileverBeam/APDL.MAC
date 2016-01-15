@@ -1,0 +1,117 @@
+!****************************************************************************
+! 集中质量悬臂梁的模态分析与谐响应分析
+!****************************************************************************
+FINISH $ /CLEAR
+/FILNAME, MODAL
+/TITLE, Beam Modal
+
+/PREP7
+! SI: N-m-s
+! ELEMENT TYPE
+ET, 1, BEAM3    ! 2D BEAM ELEMENT
+ET, 2, MASS21   ! STRUCTURAL MASS
+KEYOPT, 2, 3, 4 ! 2D MASS WITHOUT ROTARY INERTIA
+! MATERIAL
+MP, EX, 1, 0.2E12
+MP, PRXY, 1, 0.3
+MP, DENS, 1, 0.0
+! REAL CONSTANT
+R, 1, 5E-3, 4.17E-6, 0.1 ! A, I, H
+R, 2, 100        ! MASS
+
+! NODE
+N, 1,
+N, 2, 1
+N, 3, 2
+N, 4, 3
+
+! ELEMENT: BEAM3
+TYPE, 1
+MAT, 1
+REAL, 1
+E, 1, 2
+E, 2, 3
+E, 3, 4
+! ELEMENT: MASS21
+TYPE, 2
+REAL, 2
+E, 2
+E, 3
+E, 4
+
+! CONSTRAINTS
+D, 1, ALL
+D, 2, UX, , , 4
+FINISH
+
+! MODAL ANALYSIS
+/SOLU
+ANTYPE, MODAL
+MODOPT, SUBSP, 3
+SOLVE
+FINISH
+
+/POST1
+SET, LIST
+FINISH
+
+! HAMONIC
+/SOLU
+ANTYPE, HARMONIC
+HROPT, FULL
+HARFRQ, 0, 100
+NSUBST, 100
+! LOAD: 1ST MODE
+F, 2, FY, 0.137
+F, 3, FY, 0.137
+F, 4, FY, 0.875
+SOLVE
+FINISH
+
+! LOAD: 1ST NODE POST
+/POST26
+NSOL, 2, 2, U, Y, UY_2
+NSOL, 3, 3, U, Y, UY_3
+NSOL, 4, 4, U, Y, UY_4
+XVAR, 1
+PLVAR, 2, 3, 4
+/WAIT, 3
+FINISH
+
+/SOLU
+! LOAD: 2ND MODE
+F, 2, FY, -0.574
+F, 3, FY, -0.682
+F, 4, FY, 0.453
+SOLVE
+FINISH
+
+! LOAD: 2ND MODE POST
+/POST26
+/POST26
+NSOL, 2, 2, U, Y, UY_2
+NSOL, 3, 3, U, Y, UY_3
+NSOL, 4, 4, U, Y, UY_4
+XVAR, 1
+PLVAR, 2, 3, 4
+/WAIT, 3
+FINISH
+
+/SOLU
+! LOAD: 3RD MODE
+F, 2, FY, 0.807
+F, 3, FY, -0.564
+F, 4, FY, 0.174
+SOLVE
+FINISH
+
+! LOAD: 3RD MODE POST
+/POST26
+/POST26
+NSOL, 2, 2, U, Y, UY_2
+NSOL, 3, 3, U, Y, UY_3
+NSOL, 4, 4, U, Y, UY_4
+XVAR, 1
+PLVAR, 2, 3, 4
+/WAIT, 3
+FINISH
