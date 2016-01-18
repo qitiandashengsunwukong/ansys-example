@@ -1,0 +1,103 @@
+FINISH $ /CLEAR
+/FILNAME,plate
+/TITLE,"Static Analysis of a Plate"
+/UNITS,SI			    !使用国际单位制
+*AFUN,DEG			    !指定角度单位制为度
+
+!参数设定
+*SET,LL,0.085			!长
+*SET,BL,0.022			!宽
+*SET,RF,0.008			!漏斗半径
+*SET,AF,0.008			!漏斗处宽
+*SET,EXX,9.71E10		!弹性模量
+*SET,vv,0.3			    !弹性模量
+
+!进入前处理器
+/PREP7
+ET,1,PLANE182			!定义单元类型为182号单元
+MP,EX,1,EXX			    !定义弹性模量
+MP,NUXY,1,vv			!定义泊松比
+KEYOPT,1,3,0			!定义平面应力问题
+!定义应力应变数据点
+TB,MISO,1,1,25			!定义本构关系MISO
+TBTEMP,0			    !定义温度
+TBPT,,0.000402,3.90E7   !在应力应变曲线上定义点 
+TBPT,,0.002118,1.96E8
+TBPT,,0.003137,2.60E8
+TBPT,,0.004109,3.03E8
+TBPT,,0.004631,3.18E8
+TBPT,,0.005293,3.34E8
+TBPT,,0.006131,3.48E8
+TBPT,,0.006926,3.58E8
+TBPT,,0.007748,3.66E8
+TBPT,,0.008534,3.72E8
+TBPT,,0.009548,3.78E8
+TBPT,,0.010442,3.82E8
+TBPT,,0.011548,3.86E8
+TBPT,,0.012236,3.88E8
+TBPT,,0.014749,3.95E8
+TBPT,,0.016139,3.97E8
+TBPT,,0.018424,4.02E8
+TBPT,,0.020001,4.04E8
+TBPLOT,MISO,1			!图形显示应力应变曲线
+
+!建立四分之一几何模型
+RECTNG,0,RF+AF/2,0,BL/2 !建立矩形
+CYL4,,RF+AF/2,RF		!建立圆面
+ASBA,1,2			    !面相减得到漏斗
+RECTNG,RF+AF/2,LL/2,0,BL/2	!建立矩形平板
+AGLUE,1,3			    !面粘接
+
+!划分网格
+MSHKEY,1			    !打开映射网格开关
+MSHAPE,0			    !使用四边形或者六面体网格
+/PNUM,LINE,1			!显示线的编号
+/PSYMB,LDIR,1			!显示线的方向
+LPLOT				    !绘制线
+LESIZE,9,,,6			!设置9号线划分份数为6
+LESIZE,8,,,6
+LESIZE,11,,,12
+LESIZE,6,,,6
+LESIZE,7,,,6,3
+AMAP,2,8,1,7,9			!通过8,1,7,9关键点映射2号面
+LESIZE,3,,,12
+LESIZE,5,,,12
+LESIZE,4,,,6
+AMESH,1				    !划分1号面
+
+!通过对称生成整体模型
+NSYM,X,175,ALL			!通过X对称生成节点，节点增量175
+ESYM,,175,ALL			!生成单元
+EPLOT
+NSYM,Y,350,ALL
+ESYM,,350,ALL
+EPLOT
+NUMMRG,ALL			    !合并所有元素
+NUMCMP,ALL			    !压缩编号
+FINI
+
+!进入求解器
+/SOLU                       
+NSEL,S,LOC,X,-LL/2		!选择左边界节点
+D,ALL,UX,0			    !施加位移约束
+NSEL,R,LOC,Y,0			!选择左边界中轴线上节点
+D,ALL,ALL			    !全约束
+OUTRES,ALL,ALL			!设定输出所有的结果
+TIME,1				    !指定求解时间
+NSUBST,10			    !指定载荷子步
+NLGEOM,ON			    !打开大变形选项
+NSEL,S,LOC,X,LL/2
+D,ALL,UX,0.00025		!施加位移载荷
+ALLSEL
+SOLVE				
+FINI
+
+!进入后处理器
+/POST1				    !进入后处理器
+SET,LIST			    !显示所有计算的节果
+SET,1,LAST,1			!读取第一个加载步最后子步的节果
+PLDISP,1			    !同时显示变形前与变形后的形状。
+PLNSOL,S,EQV,1,1		!显示节点解的等效应力
+PLNSOL,EPTO,EQV,1,1		!显示节点解的等效应变
+PLESOL,EPEL,EQV,1,1		!显示单元解的弹性等效应变
+PLESOL,EPPL,EQV,1,1		!显示单元解的塑性等效应变
