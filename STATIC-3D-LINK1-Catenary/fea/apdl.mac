@@ -1,0 +1,75 @@
+! UNITS: m-kN
+FINISH $ /CLEAR $ /PREP7
+EA=0.6                                   ! 单缆面积(m^2)
+EE=2.0E8                                 ! 弹性模量(kN/m^2)
+QQ=60                                    ! 单缆每延米重量(kN/m)
+YSM0=100                                 ! 中跨矢高(m)
+CH=80                                    ! 中跨锚点高差(m)
+SPAN=888                                 ! 跨径
+
+ET,1,LINK1                               ! 定义单元
+R,1,EA,1.0E-5                            ! 设置一个较小的初应变
+MP,EX,1,EE                               ! 定义材料特性
+MP,PRXY,1,0.3
+MP,DENS,1,100
+
+*DIM,X,ARRAY,1000,1
+*DIM,Y,ARRAY,1000,1
+
+! 根据抛物线理论计算水平力迭代初始值
+FF=YSM0-CH/2
+HH=QQ*SPAN**2/(8*FF)                     ! 计算水平力
+HH1=0.9*HH                               ! 设置水平力迭代区间
+HH2=1.1*HH
+
+! 用二分法迭代计算主缆水平力
+*DO,I,1,100,1
+    HFM=(HH1+HH2)/2                      ! 水平力迭代初值
+    CI=QQ/HFM                            ! 中间参数
+    A0=CH*CI/SINH(SPAN*CI/2)/2           ! 中间参数
+    AI=LOG(A0+SQRT(A0**2+1))+SPAN*CI/2   ! 中间参数alpha
+    BI=COSH(AI)/CI                       ! 中间参数alpha1
+    YSM=BI-COSH(CI*(SPAN/2)-AI)/CI       ! 计算跨中矢高
+    *IF,YSM,GT,YSM0,THEN                 ! 修正水平力
+        HH1=HFM
+    *ELSEIF,YSM,LE,YSM0
+        HH2=HFM
+    *ENDIF
+*ENDDO
+ERROR1=(YSM-YSM0)/YSM0                   ! 跨中处索垂度误差
+MSS=(SINH(CI*SPAN-AI)+SINH(AI))/CI       ! 按悬链线方程得出的形状长度
+DSO=HFM*(SPAN+(SINH(2*CI*SPAN-2*AI)+SINH(2*AI))/2/CI)/(2*EE*EA)
+                                         ! 按悬链线方程得出的伸长量
+YBM=DSO/(MSS-DSO)                        ! 中跨的初始应变
+R,1,EA,YBM                               ! 修改单缆初始应力
+*DO,I,1,899,1                            ! 定义单缆节点
+    X(I)=I-1
+    Y(I)=BI-COSH(CI*X(I)-AI)/CI
+    N,I,X(I),-Y(I),0
+*ENDDO
+TYPE,1 $ MAT,1 $ REAL,1 $ ESYS,0         ! 单缆单元
+*DO,I,1,888,1
+    E,I,I+1
+*ENDDO
+EPLOT
+FINISH
+
+/SOLU
+D,1,ALL                                  ! 定义边界条件
+D,889,ALL
+ACEL,0,1,0                               ! 施加重力荷载
+ANTYPE,STATIC
+NLGEOM,ON
+NROPT,AUTO
+LUMPM,OFF
+EQSLV,,,0
+AUTOTS,OFF
+NSUBST,100
+
+KBC,0
+
+ALLSEL
+SOLVE
+
+/POST1
+PLNSOL,U,Y
