@@ -1,0 +1,16 @@
+%!TEX program = pdflatex
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{patterns}
+\usetikzlibrary{arrows.meta}
+
+\begin{document}
+\begin{tikzpicture}[scale=3]
+  \draw (0,0) rectangle (5,0.4);
+  \draw (5,-0.05) circle [radius=0.045];
+  \shade[left color=gray!50,right color=gray] (0,-0.1) rectangle (-0.2,0.5);
+  \draw[-Stealth] (2.5,0.8) -- (2.5,0.4);
+  \path (2.5,0.8) node[right] {$P$};
+
+\end{tikzpicture}
+\end{document}
