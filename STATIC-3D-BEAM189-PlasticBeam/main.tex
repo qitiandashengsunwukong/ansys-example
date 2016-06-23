@@ -24,7 +24,7 @@
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=0.6\textwidth]{beam_diagram.pdf}
+\includegraphics[width=0.6\textwidth]{./fig/beam_diagram.pdf}
 \caption{超静定梁示意图}\label{fig:beam-diagram}
 \end{figure}
 
@@ -32,5 +32,16 @@
 本例需要进行弹塑性分析，故使用BEAM189单元模拟超静定梁。
 材料本构关系采用双折线随动强化模型BKIN进行模拟。
 左端约束所有方向自由度，右侧约束$x$和$y$向平动自由度，在跨中施加集中力。
+
+\section{APDL代码}
+\lstinputlisting{./fea/apdl.mac}
+
+\section{结果分析}
+跨中挠度随荷载的变化曲线如图\ref{fig:P-Uy}所示。
+\begin{figure}[!h]
+\centering
+\includegraphics[width=0.6\textwidth]{./fig/P-Uy.pdf}
+\caption{$P-Uy$曲线}\label{fig:P-Uy}
+\end{figure}
 
 \end{document}
