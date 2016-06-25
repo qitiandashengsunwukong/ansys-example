@@ -1,16 +1,31 @@
 %!TEX program = pdflatex
 \documentclass[border=10pt]{standalone}
-\usepackage{tikz}
-\usetikzlibrary{patterns}
-\usetikzlibrary{arrows.meta}
+%\usepackage{tikz}
+%\usetikzlibrary{patterns}
+%\usetikzlibrary{arrows.meta}
+\usepackage{structuralanalysis}
 
 \begin{document}
-\begin{tikzpicture}[scale=3]
-  \draw (0,0) rectangle (5,0.4);
-  \draw (5,-0.05) circle [radius=0.045];
-  \shade[left color=gray!50,right color=gray] (0,-0.1) rectangle (-0.2,0.5);
-  \draw[-Stealth] (2.5,0.8) -- (2.5,0.4);
-  \path (2.5,0.8) node[right] {$P$};
-
+%\begin{tikzpicture}[scale=3]
+%  \draw (0,0) rectangle (5,0.4);
+%  \draw (5,-0.05) circle [radius=0.045];
+%  \shade[left color=gray!50,right color=gray] (0,-0.1) rectangle %(-0.2,0.5);
+%  \draw[-Stealth] (2.5,0.8) -- (2.5,0.4);
+%  \path (2.5,0.8) node[right] {$P$};
+%
+%\end{tikzpicture}
+\begin{tikzpicture}
+  \scaling{2};
+  \point{a}{0}{0};
+  \point{b}{5}{0};
+  \point{m}{2.5}{0};
+  \beam{2}{a}{b};
+  \support{3}{a}[270];
+  \support{2}{b};
+  \hinge{1}{b};
+  \load{1}{m}[90][0.8][0.0];
+  \notation{1}{$(m)+(0,0.8)$}{$P$}[right];
+  \draw[->] (a) -- ++(0,1) node[left] {$y$};
+  \draw[->] (b) -- ++(1,0) node[right] {$x$};
 \end{tikzpicture}
 \end{document}
